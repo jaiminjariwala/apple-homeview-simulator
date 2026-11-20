@@ -16,7 +16,7 @@ Find a light by where it sits in the room. In the Bedroom demo, tap the hanging 
 
 ## Demo
 
-![HomeView simulator demo showing the dashboard, the two Bedroom lights toggling, and a return to the dashboard](Demo/homeview-demo.gif)
+![HomeView simulator demo showing the dashboard, the two Bedroom lights toggling, and a return to the dashboard](Demo/homeview-demo.webp)
 
 ## What works today
 
