@@ -1,19 +1,25 @@
 # HomeView Preview
 
-A native macOS prototype that runs a SwiftUI dashboard and interactive bedroom lighting demo inside a HomeView-style device enclosure.
+HomeView Preview is a macOS simulator for trying out smart-home controls on a small touch display. The dashboard and room interactions are built in SwiftUI.
 
-## Run in Xcode
+## Why I'm building it
 
-Open `Package.swift`, select the **HomeViewPreview** scheme and **My Mac**, and press **⌘R**. The package targets macOS 15 or later and requires a Swift 6 toolchain.
+I want to test how quickly someone can find and control the right device in a room. Seeing a lamp where it sits makes it easier to recognize than remembering a device name like “Bedroom Light 2.”
 
-1. Click **Lights · Bedroom** to open the bedroom.
-2. Click the hanging light or the desk lamp to switch it independently. The bulb button in the lower-right corner switches both lights.
-3. Click the back arrow or press **Esc** to return to the dashboard.
+## What works today
 
-The bedroom uses a fixed, photo-based view with four lighting states. The demo controls simulate device state. The dashboard and bedroom share the same light state.
+- An interactive dashboard with a clock, thermostat, door lock, intercom, and Good Night scene. The device controls use simulated state.
+- An edge-to-edge bedroom photo with two clickable lights. Switch the hanging light or desk lamp individually, or use the bulb button to switch both. Four prepared images show the lighting combinations.
+- A widget library for adding and repositioning widgets.
 
-## Project layout
+## Demo
 
-- `HomeViewPreviewApp.swift` defines the app and fits its interactive canvas to the device enclosure.
-- `WidgetCanvas.swift` renders the dashboard and widget library.
-- `RoomPrototype.swift` maps each fixture to a click area and selects the room image for the current lighting state.
+[Watch the HomeView demo](Demo/homeview-demo.mp4). It shows the dashboard, opens the Bedroom, switches each light, and returns to the dashboard.
+
+To run it locally, open `Package.swift` in Xcode, select **HomeViewPreview** and **My Mac**, and press **⌘R**. The package targets macOS 15 or later and uses Swift 6 tooling.
+
+## Proposed
+
+- Import a room photo, suggest the fixtures it contains, and let the user confirm their placement and prepare lighting previews.
+- Import a LiDAR scan to build a floor-by-floor map with direct fixture controls.
+- Give developers a reusable SDK for adding their own rooms, devices, and scenes.
