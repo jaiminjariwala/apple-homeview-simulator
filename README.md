@@ -1,25 +1,35 @@
-# HomeView Preview
+# Apple HomeView Simulator
 
-HomeView Preview is a macOS simulator for trying out smart-home controls on a small touch display. The dashboard and room interactions are built in SwiftUI.
+An independent macOS simulator for prototyping smart-home experiences on Apple HomeView, a compact home display. The simulator runs in SwiftUI and uses simulated device state.
 
 ## Why I'm building it
 
-I want to test how quickly someone can find and control the right device in a room. Seeing a lamp where it sits makes it easier to recognize than remembering a device name like “Bedroom Light 2.”
+[Xcode offers simulators](https://developer.apple.com/documentation/xcode/building-and-running-an-app) for iPhone, iPad, Apple Watch, Apple TV, and Apple Vision Pro. HomeView doesn’t have a dedicated Xcode simulator. I’m building a place to try HomeView interactions with the same familiar edit, run, and test loop.
 
-## What works today
+## For developers and designers
 
-- An interactive dashboard with a clock, thermostat, door lock, intercom, and Good Night scene. The device controls use simulated state.
-- An edge-to-edge bedroom photo with two clickable lights. Switch the hanging light or desk lamp individually, or use the bulb button to switch both. Four prepared images show the lighting combinations.
-- A widget library for adding and repositioning widgets.
+Open the Swift package in Xcode, edit a SwiftUI view, and run it on **My Mac** to try it inside the HomeView display. Use the dashboard and widget library to test layout, readable labels, and tap targets at device scale.
+
+## For people using HomeView
+
+Find a light by where it sits in the room. In the Bedroom demo, tap the hanging light or the desk lamp in the photo to switch it. The room updates to show the new lighting, and one button switches both lights.
 
 ## Demo
 
-[Watch the HomeView demo](Demo/homeview-demo.mp4). It shows the dashboard, opens the Bedroom, switches each light, and returns to the dashboard.
+![HomeView simulator demo showing the dashboard, the two Bedroom lights toggling, and a return to the dashboard](Demo/homeview-demo.gif)
 
-To run it locally, open `Package.swift` in Xcode, select **HomeViewPreview** and **My Mac**, and press **⌘R**. The package targets macOS 15 or later and uses Swift 6 tooling.
+## What works today
+
+- SwiftUI dashboard with a clock, simulated thermostat, door lock, intercom, and Good Night scene.
+- Widget library for adding and repositioning controls.
+- Bedroom photo with two independent light controls and four prepared lighting states.
 
 ## Proposed
 
-- Import a room photo, suggest the fixtures it contains, and let the user confirm their placement and prepare lighting previews.
-- Import a LiDAR scan to build a floor-by-floor map with direct fixture controls.
-- Give developers a reusable SDK for adding their own rooms, devices, and scenes.
+- Import a room photo, suggest fixture locations, and generate lighting previews for review.
+- Turn LiDAR scans into floor-by-floor home maps with controls at each fixture’s location.
+- Package the simulator components as a reusable SDK for custom rooms, devices, and scenes.
+
+## Run locally
+
+Open `Package.swift` in Xcode, select **HomeViewPreview** and **My Mac**, and press **⌘R**. Requires macOS 15 or later and a Swift 6 toolchain.
