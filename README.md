@@ -12,7 +12,7 @@ Open the Swift package in Xcode, edit a SwiftUI view, and run it on **My Mac** t
 
 ## For people using HomeView
 
-Find a light by where it sits in the room. In the Bedroom demo, tap the hanging light or the desk lamp in the photo to switch it. The room updates to show the new lighting, and one button switches both lights.
+See your actual room and tap a light in the photo to turn it on or off. The photo updates to show how the room looks. It’s recognition over recall: the familiar layout helps you spot the right light without memorizing device names or button locations.
 
 ## Demo
 
