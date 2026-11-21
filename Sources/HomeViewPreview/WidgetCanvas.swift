@@ -1,17 +1,25 @@
 import SwiftUI
 
 enum CanvasWidget: String, CaseIterable, Identifiable {
-    case thermostat = "Thermostat", clock = "Analog Clock", night = "Good Night", intercom = "Intercom", door = "Door Lock", bedroom = "Bedroom Lights"
-    case lamp = "Floor Lamp", music = "Music"
+    case thermostat = "Thermostat", clock = "Analog Clock", night = "Good Night"
+    case intercom = "Intercom", door = "Door Lock", bedroom = "Bedroom Lights"
+    case bedroomTwo = "Bedroom 2", bathroomOne = "Bathroom 1", kitchen = "Kitchen", livingRoom = "Living Room"
+
+    var page: Int {
+        switch self {
+        case .bedroomTwo, .bathroomOne, .kitchen, .livingRoom: 1
+        default: 0
+        }
+    }
+
     var id: Self { self }
     var size: CGSize {
         switch self {
         case .thermostat: CGSize(width: 344, height: 344)
-        case .lamp, .music: CGSize(width: 202, height: 200)
         default: CGSize(width: 167, height: 167)
         }
     }
-    var initial: CGPoint {
+    var center: CGPoint {
         switch self {
         case .thermostat: CGPoint(x: 184, y: 184)
         case .clock: CGPoint(x: 449, y: 95)
@@ -19,53 +27,30 @@ enum CanvasWidget: String, CaseIterable, Identifiable {
         case .intercom: CGPoint(x: 95, y: 449)
         case .door: CGPoint(x: 272, y: 449)
         case .bedroom: CGPoint(x: 449, y: 449)
-        case .lamp: CGPoint(x: 162, y: 388)
-        case .music: CGPoint(x: 382, y: 388)
+        case .bedroomTwo: CGPoint(x: 95, y: 95)
+        case .bathroomOne: CGPoint(x: 272, y: 95)
+        case .kitchen: CGPoint(x: 449, y: 95)
+        case .livingRoom: CGPoint(x: 95, y: 272)
         }
     }
 }
 
-final class CanvasLayout: ObservableObject {
-    @Published var positions: [CanvasWidget: CGPoint] = Dictionary(uniqueKeysWithValues:
-        CanvasWidget.allCases.filter { $0 != .lamp && $0 != .music }.map { ($0, $0.initial) })
-    @Published var temperature = 68
-    @Published var doorLocked = true
-    @Published var intercomActive = false
-    func place(_ kind: CanvasWidget, at point: CGPoint) {
-        let x = kind.size.width / 2 + 11, y = kind.size.height / 2 + 11
-        positions[kind] = CGPoint(x: min(544-x, max(x, point.x)), y: min(544-y, max(y, point.y)))
-    }
-}
-
-struct WidgetLibrary: View {
-    @ObservedObject var layout: CanvasLayout
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Drag a widget onto the display").font(.headline)
-            ForEach(CanvasWidget.allCases) { kind in
-                HStack {
-                    Text(kind.rawValue).frame(maxWidth: .infinity, alignment: .leading)
-                    Button(layout.positions[kind] == nil ? "Add" : "Remove") {
-                        if layout.positions[kind] == nil { layout.place(kind, at: kind.initial) }
-                        else { layout.positions.removeValue(forKey: kind) }
-                    }
-                }
-                .padding(8).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
-                .draggable(kind.rawValue)
-            }
-        }.padding(18).frame(width: 275)
-    }
-}
-
 struct WidgetCanvas: View {
-    @ObservedObject var layout: CanvasLayout
+    @State private var temperature = 68
+    @State private var doorLocked = true
+    @State private var intercomActive = false
+
     @ObservedObject var room: RoomLights
+    @ObservedObject var bedroomTwo: RoomLights
+    @ObservedObject var bathroomOne: RoomLights
+    @ObservedObject var kitchen: RoomLights
+    @ObservedObject var livingRoom: RoomLights
+    @Binding var page: Int?
     let openRoom: () -> Void
-    @Environment(\.openWindow) private var openWindow
-    @State private var lampOn = false
-    @State private var playing = false
-    @State private var track = 0
-    private let titles = ["First Light", "Evening Walk", "Soft Focus"]
+    let openBedroomTwo: () -> Void
+    let openBathroomOne: () -> Void
+    let openKitchen: () -> Void
+    let openLivingRoom: () -> Void
     private static let wallpaper = Bundle.module.url(forResource: "FamilyWallpaper", withExtension: "png", subdirectory: "Resources").flatMap(NSImage.init(contentsOf:))
 
     var body: some View {
@@ -74,27 +59,87 @@ struct WidgetCanvas: View {
                 Image(nsImage: wallpaper).resizable().scaledToFill().frame(width: 544,height: 544).clipped().accessibilityHidden(true)
             }
             Color.black.opacity(0.12).allowsHitTesting(false)
-            ForEach(CanvasWidget.allCases) { kind in
-                if let center = layout.positions[kind] {
-                    Group {
-                        if kind == .bedroom { widget(kind, at: center) }
-                        else { widget(kind, at: center).draggable(kind.rawValue) }
-                    }.frame(width: kind.size.width, height: kind.size.height).position(center)
+            ScrollView(.horizontal) {
+                HStack(spacing: 0) {
+                    dashboardPage(0).id(0)
+                    dashboardPage(1).id(1)
                 }
+                .scrollTargetLayout()
             }
+            .scrollIndicators(.hidden)
+            .scrollTargetBehavior(.paging)
+            .scrollPosition(id: $page)
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 28).onEnded { gesture in
+                    let delta = gesture.translation
+                    guard abs(delta.width) > 1.5 * abs(delta.height) else { return }
+                    goToPage(delta.width < 0 ? 1 : 0)
+                }
+            )
+            HStack(spacing: 2) {
+                pageButton(0)
+                pageButton(1)
+            }
+            .position(x: 272, y: 537)
         }
-        .frame(width: 544,height: 544)
-        .dropDestination(for: String.self) { items, point in
-            guard let value = items.first, let kind = CanvasWidget(rawValue: value) else { return false }
-            layout.place(kind, at: point)
-            return true
-        }
-        .contextMenu { Button("Widget Library…") { openWindow(id: "widget-library") } }
+        .frame(width: 544, height: 544)
     }
 
-    @ViewBuilder private func widget(_ kind: CanvasWidget, at center: CGPoint) -> some View {
+    private func dashboardPage(_ index: Int) -> some View {
+        ZStack(alignment: .topLeading) {
+            ForEach(CanvasWidget.allCases.filter { $0.page == index }) { kind in
+                widget(kind)
+                    .frame(width: kind.size.width, height: kind.size.height)
+                    .position(kind.center)
+            }
+        }
+        .frame(width: 544, height: 544)
+    }
+
+    private func roomLightTile(_ shape: UnevenRoundedRectangle, icon: String, title: String, detail: String,
+                               roomName: String, lights: RoomLights, open: @escaping () -> Void) -> some View {
+        let on = lights.count > 0
+        return Button { lights.toggleAll() } label: {
+            face(shape, on ? icon + ".fill" : icon, title, detail)
+        }
+        .buttonStyle(.plain)
+        .highPriorityGesture(
+            LongPressGesture(minimumDuration: 1, maximumDistance: 12)
+                .exclusively(before: TapGesture())
+                .onEnded { result in
+                    switch result {
+                    case .first: open()
+                    case .second: lights.toggleAll()
+                    }
+                }
+        )
+        .accessibilityLabel("\(roomName) lights")
+        .accessibilityValue("\(lights.count) of \(lights.lights.count) on")
+        .accessibilityAction(named: Text("Open \(roomName)")) { open() }
+    }
+
+    private func goToPage(_ index: Int) {
+        withAnimation(.easeInOut(duration: 0.23)) { page = index }
+    }
+
+    private func pageButton(_ index: Int) -> some View {
+        Button { goToPage(index) } label: {
+            Circle()
+                .fill(.white.opacity((page ?? 0) == index ? 1 : 0.45))
+                .frame(width: 5, height: 5)
+                .shadow(color: .black.opacity(0.45), radius: 1)
+                .frame(width: 16, height: 14)
+                .contentShape(.interaction, Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Dashboard page \(index + 1) of 2")
+        .accessibilityAddTraits((page ?? 0) == index ? .isSelected : [])
+    }
+
+    @ViewBuilder private func widget(_ kind: CanvasWidget) -> some View {
+        let center = kind.center
         let half = CGSize(width: kind.size.width / 2, height: kind.size.height / 2)
-        // Keep the glass rim concentric with the aperture as tiles move around the canvas.
+        // Keep the glass rim concentric with the display aperture.
         let radius = { (horizontalInset: CGFloat, verticalInset: CGFloat) in
             max(32, 77 - max(horizontalInset, verticalInset))
         }
@@ -109,61 +154,45 @@ struct WidgetCanvas: View {
             AnalogDial().modifier(DashboardGlass(shape: Circle()))
         case .thermostat:
             ZStack(alignment: .bottom) {
-                Text("\(layout.temperature)").font(.system(size: 145, weight: .medium))
+                Text("\(temperature)").font(.system(size: 145, weight: .medium))
                     .monospacedDigit().frame(maxWidth: .infinity, maxHeight: .infinity).offset(y: -19)
                 HStack {
-                    playerButton("chevron.down", "Lower temperature") { layout.temperature = max(50, layout.temperature - 1) }
+                    playerButton("chevron.down", "Lower temperature") { temperature = max(50, temperature - 1) }
                     Spacer()
                     tileLabel("Thermostat", "Living Room")
                     Spacer()
-                    playerButton("chevron.up", "Raise temperature") { layout.temperature = min(90, layout.temperature + 1) }
+                    playerButton("chevron.up", "Raise temperature") { temperature = min(90, temperature + 1) }
                 }.font(.title.bold()).padding(24)
             }.modifier(DashboardGlass(shape: shape))
         case .bedroom:
-            Button(action: openRoom) {
-                face(shape, room.count > 0 ? "lamp.ceiling.fill" : "lamp.ceiling", "Lights", "Bedroom")
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Open bedroom lights")
-            .accessibilityValue("\(room.count) of 2 on")
+            roomLightTile(shape, icon: "lamp.ceiling", title: "Lights", detail: "Bedroom",
+                          roomName: "Bedroom", lights: room, open: openRoom)
+        case .bedroomTwo:
+            roomLightTile(shape, icon: "lamp.ceiling", title: kind.rawValue, detail: "Lights",
+                          roomName: kind.rawValue, lights: bedroomTwo, open: openBedroomTwo)
+        case .bathroomOne:
+            roomLightTile(shape, icon: "lightbulb.2", title: kind.rawValue, detail: "Lights",
+                          roomName: kind.rawValue, lights: bathroomOne, open: openBathroomOne)
+        case .kitchen:
+            roomLightTile(shape, icon: "lamp.ceiling", title: kind.rawValue, detail: "Lights",
+                          roomName: kind.rawValue, lights: kitchen, open: openKitchen)
+        case .livingRoom:
+            roomLightTile(shape, icon: "lamp.table", title: kind.rawValue, detail: "Lights",
+                          roomName: kind.rawValue, lights: livingRoom, open: openLivingRoom)
         case .night:
             Button {
                 room.lights = Array(repeating: false, count: room.lights.count)
-                layout.doorLocked = true
+                doorLocked = true
             } label: { face(shape, "moon.stars.fill", "Good Night", "Scene") }.buttonStyle(.plain)
         case .door:
-            Button { layout.doorLocked.toggle() } label: {
-                face(shape, layout.doorLocked ? "lock.fill" : "lock.open.fill", "Door Lock", "Front Door")
-            }.buttonStyle(.plain).accessibilityValue(layout.doorLocked ? "Locked" : "Unlocked")
+            Button { doorLocked.toggle() } label: {
+                face(shape, doorLocked ? "lock.fill" : "lock.open.fill", "Door Lock", "Front Door")
+            }.buttonStyle(.plain).accessibilityValue(doorLocked ? "Locked" : "Unlocked")
         case .intercom:
-            Button { layout.intercomActive.toggle() } label: {
-                face(shape, "waveform", "Intercom", layout.intercomActive ? "Active" : "Everywhere")
+            Button { intercomActive.toggle() } label: {
+                face(shape, "waveform", "Intercom", intercomActive ? "Active" : "Everywhere")
             }.buttonStyle(.plain)
-        case .lamp:
-            Button { lampOn.toggle() } label: {
-                VStack(alignment: .leading) {
-                    Image(systemName: lampOn ? "lightbulb.fill" : "lightbulb")
-                        .foregroundStyle(lampOn ? .yellow : .white).font(.title)
-                    Spacer()
-                    Text("Hallway").bold()
-                    Text("Floor Lamp").foregroundStyle(.white.opacity(0.8))
-                }.frame(maxWidth: .infinity,maxHeight: .infinity,alignment: .leading).padding(21)
-            }.buttonStyle(.plain).accessibilityValue(lampOn ? "On" : "Off").modifier(WidgetGlass())
-        case .music:
-            VStack(alignment: .leading,spacing: 6) {
-                Image(systemName: "music.note").font(.title2).frame(width: 50,height: 50)
-                    .background(.purple.gradient,in: RoundedRectangle(cornerRadius: 12))
-                Spacer()
-                Text(titles[track]).bold()
-                Text("Demo playlist").foregroundStyle(.white.opacity(0.8))
-                HStack {
-                    playerButton("backward.fill","Previous") { track = (track + titles.count - 1) % titles.count }
-                    Spacer()
-                    playerButton(playing ? "pause.fill" : "play.fill",playing ? "Pause" : "Play") { playing.toggle() }
-                    Spacer()
-                    playerButton("forward.fill","Next") { track = (track + 1) % titles.count }
-                }
-            }.padding(19).modifier(WidgetGlass())
+
         }
     }
 
@@ -181,7 +210,6 @@ struct WidgetCanvas: View {
             tileLabel(title, detail).padding(.bottom, 24)
         }.frame(maxWidth: .infinity, maxHeight: .infinity)
             .modifier(DashboardGlass(shape: shape))
-            .background(Color.clear)
             .contentShape(.interaction, Rectangle())
     }
 
@@ -191,20 +219,8 @@ struct WidgetCanvas: View {
     }
 }
 
-private struct WidgetGlass: ViewModifier {
-    func body(content: Content) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 35, style: .continuous)
-        if #available(macOS 26, *) {
-            content.foregroundStyle(.white).glassEffect(.regular.tint(.black.opacity(0.29)), in: shape)
-        } else {
-            content.foregroundStyle(.white).background(.thinMaterial,in: shape).environment(\.colorScheme,.dark)
-        }
-    }
-}
-
 private struct DashboardGlass<S: Shape>: ViewModifier {
     let shape: S
-    init(shape: S) { self.shape = shape }
 
     @ViewBuilder func body(content: Content) -> some View {
         let face = content.foregroundStyle(.white).shadow(color: .black.opacity(0.35), radius: 1)

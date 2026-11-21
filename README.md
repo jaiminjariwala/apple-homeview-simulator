@@ -8,7 +8,7 @@ An independent macOS simulator for prototyping smart-home experiences on Apple H
 
 ## For developers and designers
 
-Open the Swift package in Xcode, edit a SwiftUI view, and run it on **My Mac** to try it inside the HomeView display. Use the dashboard and widget library to test layout, readable labels, and tap targets at device scale.
+Open the Swift package in Xcode, edit a SwiftUI view, and run it on **My Mac** to try it inside the HomeView display. Use the dashboard to test layout, readable labels, and tap targets at device scale.
 
 ## For people using HomeView
 
@@ -16,13 +16,16 @@ See your actual room and tap a light in the photo to turn it on or off. The phot
 
 ## Demo
 
-![HomeView simulator demo showing the dashboard, the two Bedroom lights toggling, and a return to the dashboard](Demo/homeview-demo.webp)
+![HomeView demo showing individual and grouped light controls in Bedroom 1, Bedroom 2, and Bathroom 1](Demo/homeview-demo.webp)
+
+[Watch the MP4](Demo/homeview-demo.mp4) · [Download the HDR10 recording](Demo/homeview-demo-hdr.mp4)
 
 ## What works today
 
 - SwiftUI dashboard with a clock, simulated thermostat, door lock, intercom, and Good Night scene.
-- Widget library for adding and repositioning controls.
-- Bedroom photo with two independent light controls and four prepared lighting states.
+- Tap a room tile to switch all its lights. Hold for one second to open the room.
+- Tap a fixture in the room photo or use the group controls to switch several lights together.
+- Swipe left for Bedroom 2, Bathroom 1, Kitchen, and Living Room.
 
 ## Proposed
 

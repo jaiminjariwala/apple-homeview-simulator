@@ -2,10 +2,23 @@ import SwiftUI
 import Combine
 
 final class RoomLights: ObservableObject {
-    @Published var lights = [true, true]
+    @Published var lights: [Bool]
+
+    init(count: Int = 2, initiallyOn: Bool = true) {
+        lights = Array(repeating: initiallyOn, count: count)
+    }
 
     var count: Int { lights.filter { $0 }.count }
-    func toggleAll() { lights = [count == 0, count == 0] }
+    func isOn(in fixtures: Range<Int>) -> Bool {
+        lights[fixtures].contains(true)
+    }
+
+    func toggle(_ fixtures: Range<Int>) {
+        let on = !isOn(in: fixtures)
+        lights.replaceSubrange(fixtures, with: repeatElement(on, count: fixtures.count))
+    }
+
+    func toggleAll() { toggle(lights.indices) }
 }
 
 struct RoomPrototype: View {
@@ -45,16 +58,7 @@ struct RoomPrototype: View {
             RoomBackButton(label: "Back to dashboard", action: onBack).padding(controlInset)
         }
         .overlay(alignment: .bottomTrailing) {
-            Button { room.toggleAll() } label: {
-                Image(systemName: room.count == 0 ? "lightbulb" : "lightbulb.fill")
-                    .font(.system(size: 17, weight: .semibold))
-                    .frame(width: 42, height: 42)
-                    .modifier(RoomGlass())
-                    .contentShape(.interaction, Rectangle())
-            }.buttonStyle(.plain)
-                .accessibilityLabel(room.count == 0 ? "Turn both lights on" : "Turn both lights off")
-                .accessibilityValue("\(room.count) of 2 on")
-                .help(room.count == 0 ? "Turn both lights on" : "Turn both lights off")
+            RoomLightControls(room: room, groups: [.init("Ceiling", 0..<1), .init("Lamps", 1..<2)])
                 .padding(controlInset)
         }
         .foregroundStyle(.white)
@@ -90,6 +94,53 @@ struct RoomPrototype: View {
         .accessibilityValue(room.lights[index] ? "On" : "Off")
         .help(name)
         .position(x: bounds.midX * photoSize.width, y: bounds.midY * photoSize.height)
+    }
+}
+
+struct RoomLightGroup: Identifiable {
+    let name: String
+    let fixtures: Range<Int>
+    var id: String { name }
+
+    init(_ name: String, _ fixtures: Range<Int>) {
+        self.name = name
+        self.fixtures = fixtures
+    }
+}
+
+struct RoomLightControls: View {
+    @ObservedObject var room: RoomLights
+    let groups: [RoomLightGroup]
+
+    var body: some View {
+        HStack(spacing: 7) {
+            ForEach(groups) { group in
+                let on = room.isOn(in: group.fixtures)
+                Button {
+                    room.toggle(group.fixtures)
+                } label: {
+                    Text(group.name)
+                        .font(.system(size: 15, weight: .semibold))
+                        .padding(.horizontal, 13)
+                        .frame(height: 42)
+                        .modifier(RoomGlass())
+                        .contentShape(.interaction, Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityValue(on ? "On" : "Off")
+                .help(on ? "Turn off \(group.name.lowercased())" : "Turn on \(group.name.lowercased())")
+            }
+            Button { room.toggleAll() } label: {
+                Image(systemName: room.count == 0 ? "lightbulb" : "lightbulb.fill")
+                    .font(.system(size: 17, weight: .semibold))
+                    .frame(width: 42, height: 42)
+                    .modifier(RoomGlass())
+                    .contentShape(.interaction, Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(room.count == 0 ? "Turn all lights on" : "Turn all lights off")
+            .accessibilityValue("\(room.count) of \(room.lights.count) on")
+        }
     }
 }
 
